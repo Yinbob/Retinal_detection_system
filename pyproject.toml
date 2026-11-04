@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "retina-auth"
+version = "0.1.0"
+description = "SIFT, HOG and optional SuperRetina retinal identity experiments"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy",
+  "opencv-python-headless",
+  "scikit-image",
+  "pandas",
+  "matplotlib",
+  "PyYAML",
+  "pytest",
+  "pillow",
+  "tqdm",
+]
+
+[project.scripts]
+retina-auth = "retina_auth.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+

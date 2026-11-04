@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>眼底视网膜身份认证实验系统 · Retinal Auth Console</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">跳转到主要内容</a>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-ring" aria-hidden="true"></span>
+      <div class="brand-text">
+        <span class="brand-name">眼底视网膜身份认证系统</span>
+        <span class="brand-sub">SIFT 局部几何 · SIFT 双向一致性 · HOG 全局梯度 · Vistel &amp; FIRE</span>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist" aria-label="功能模块导航">
+      <span class="tab-thumb" id="tabThumb" aria-hidden="true"></span>
+      <button class="tab is-active" role="tab" data-view="identify" aria-selected="true">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+        <span>光学识别台</span>
+      </button>
+      <button class="tab" role="tab" data-view="results" aria-selected="false">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        <span>协议基准对比</span>
+      </button>
+      <button class="tab" role="tab" data-view="calibration" aria-selected="false">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+        <span>阈值标定与改进</span>
+      </button>
+      <button class="tab" role="tab" data-view="errors" aria-selected="false">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M11 8v4M11 15h.01"/></svg>
+        <span>错误分析与审计</span>
+      </button>
+    </nav>
+
+    <div class="status" id="serviceStatus">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="serviceText">连接中</span>
+    </div>
+  </header>
+
+  <main id="mainContent" tabindex="-1">
+    <div class="page-heading">
+      <div><h1 id="pageTitle">光学识别工作台</h1><p id="pageDescription">选择一张眼底图，比较局部几何与全局梯度的身份检索结果。</p></div>
+      <span class="dataset-context" id="datasetContext">正在读取数据集</span>
+    </div>
+    <!-- ==================== VIEW 1: 光学识别工作台 ==================== -->
+    <section id="view-identify" class="view is-active">
+      <aside class="panel rail" aria-label="身份比对参数">
+        <div class="rail-heading"><h2>比对设置</h2><span>查询 → 全参考库</span></div>
+        <div class="field">
+          <span class="label">测试数据集</span>
+          <div class="segmented" id="datasetSeg" role="radiogroup" aria-label="测试数据集">
+            <button type="button" role="radio" data-value="vistel" aria-checked="true" class="is-on">Vistel</button>
+            <button type="button" role="radio" data-value="fire" aria-checked="false">FIRE</button>
+          </div>
+        </div>
+
+        <div class="field" id="protocolField" hidden>
+          <span class="label">FIRE 评测协议</span>
+          <div class="segmented" id="protocolSeg" role="radiogroup" aria-label="FIRE 评测协议">
+            <button type="button" role="radio" data-value="fire_pair_exclude_self" aria-checked="true" class="is-on">排除自身副本</button>
+            <button type="button" role="radio" data-value="fire_pair" aria-checked="false">原始划分</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label">特征与匹配算法</span>
+          <div class="segmented seg-4" id="methodSeg" role="radiogroup" aria-label="特征与匹配算法">
+            <button type="button" role="radio" data-value="all" aria-checked="true" class="is-on">三方案同台</button>
+            <button type="button" role="radio" data-value="sift" aria-checked="false">SIFT</button>
+            <button type="button" role="radio" data-value="sift_bidirectional" aria-checked="false">双向SIFT</button>
+            <button type="button" role="radio" data-value="hog" aria-checked="false">HOG</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label">查询来源</span>
+          <div class="segmented" id="sourceSeg" role="radiogroup" aria-label="查询来源">
+            <button type="button" role="radio" data-value="protocol" aria-checked="true" class="is-on">协议查询图</button>
+            <button type="button" role="radio" data-value="upload" aria-checked="false">上传图片</button>
+          </div>
+        </div>
+
+        <div id="protocolPanel" class="field">
+          <div class="field-row">
+            <label class="label" for="querySelect">选择查询样本</label>
+            <span class="meta-pill" id="queryCountBadge">40 张</span>
+          </div>
+          <div class="category-filter" id="fireCatFilter" hidden>
+            <button type="button" data-cat="ALL" class="chip is-on">全部 (134)</button>
+            <button type="button" data-cat="S" class="chip">S组 高重叠 (71)</button>
+            <button type="button" data-cat="P" class="chip">P组 小重叠 (49)</button>
+            <button type="button" data-cat="A" class="chip">A组 病变 (14)</button>
+          </div>
+          <select id="querySelect"></select>
+
+          <div class="preset-block">
+            <span class="label">典型样本快速检视</span>
+            <div class="preset-grid" id="presetButtons"></div>
+          </div>
+        </div>
+
+        <div id="uploadPanel" class="field" hidden>
+          <label class="dropzone" id="dropzone">
+            <input id="fileInput" type="file" accept="image/jpeg,image/png" />
+            <svg class="dropzone-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 16V4M7 9l5-5 5 5M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+            </svg>
+            <span class="dropzone-text" id="dropText">选择或拖入眼底彩照</span>
+            <span class="small">JPG / PNG · 不超过 20 MB</span>
+          </label>
+          <p class="error-text small" id="uploadError" role="alert"></p>
+          <button class="toggle-btn" type="button" id="clearFileBtn" hidden>移除图片</button>
+        </div>
+
+        <button type="button" class="primary" id="runBtn">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
+            <path d="M4 12h16" />
+          </svg>
+          <span id="runLabel">执行身份比对</span>
+        </button>
+
+        <p class="hint" id="thresholdHint"></p>
+      </aside>
+
+      <section class="workbench">
+        <!-- 双盘光学配准与预处理透视台 -->
+        <div class="panel optical-stage">
+          <div class="stage-toolbar">
+            <div class="stage-title-wrap">
+              <h2>视网膜光学配准与预处理透视台</h2>
+              <span class="stage-subtitle" id="stageSubtitle">选择查询图并执行检索，实时观察局部关键点几何内点连线与预处理过程</span>
+            </div>
+            <div class="stage-controls">
+              <div class="segmented compact" id="stageViewSeg" role="radiogroup" aria-label="预处理阶段透视">
+                <button type="button" role="radio" data-value="rgb" aria-checked="true" class="is-on" title="原始 RGB 眼底彩照">RGB 原图</button>
+                <button type="button" role="radio" data-value="green" aria-checked="false" title="血管对比度最强的绿色通道">绿通道</button>
+                <button type="button" role="radio" data-value="fov" aria-checked="false" title="FOV 最大连通区域与 8px 边界腐蚀掩膜">FOV 掩膜</button>
+                <button type="button" role="radio" data-value="clahe" aria-checked="false" title="1024x1024 等比补边 + CLAHE 局部对比度增强">CLAHE 增强</button>
+              </div>
+              <button type="button" class="toggle-btn is-on" id="toggleLinesBtn" title="切换显示 RANSAC 几何内点匹配飞线">
+                <svg class="btn-icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 7l10 10"/></svg>
+                <span>RANSAC 内点连线</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="dual-optics" id="dualOptics">
+            <div class="optic-unit">
+              <div class="optic-header">
+                <span class="optic-role">待认证查询眼底 (Query)</span>
+                <span class="optic-id" id="queryMeta">—</span>
+              </div>
+              <div class="scanner" id="scanner" data-state="idle">
+                <div class="scanner-ring" aria-hidden="true"></div>
+                <div class="scanner-disc" id="queryDisc">
+                  <span class="placeholder" id="previewPlaceholder">尚未选择查询图</span>
+                  <span class="scanner-sweep" aria-hidden="true"></span>
+                </div>
+                <span class="scanner-cross" aria-hidden="true"></span>
+                <span class="ripple" aria-hidden="true"></span>
+              </div>
+              <div class="optic-foot" id="queryFootMeta">等待载入查询样本</div>
+            </div>
+
+            <div class="optic-bridge" id="opticBridge">
+              <div class="bridge-pill" id="bridgeBadge">待比对</div>
+              <div class="bridge-stat" id="bridgeStat">全库余弦 / RANSAC 单应性</div>
+            </div>
+
+            <div class="optic-unit">
+              <div class="optic-header">
+                <span class="optic-role" id="refRoleLabel">最相似参考眼底 (Top-1 Reference)</span>
+                <span class="optic-id" id="refMeta">—</span>
+              </div>
+              <div class="scanner ref-scanner" id="refScanner" data-state="idle">
+                <div class="scanner-ring" aria-hidden="true"></div>
+                <div class="scanner-disc" id="refDisc">
+                  <span class="placeholder" id="refPlaceholder">执行比对后显示返回参考图</span>
+                </div>
+                <span class="scanner-cross" aria-hidden="true"></span>
+              </div>
+              <div class="optic-foot" id="refFootMeta">点击下方任意 Top-5 候选图可切换对比</div>
+            </div>
+
+            <!-- 动态 SVG 关键点内点匹配飞线叠加层 -->
+            <svg class="correspondence-svg" id="inlierSvg" viewBox="0 0 1000 420" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+        </div>
+
+        <div class="result-section-heading"><h2>算法比对结果</h2><span>分数基于各算法独立标定，不跨算法比较</span></div>
+        <div class="results" id="results" aria-live="polite"></div>
+      </section>
+    </section>
+
+    <!-- ==================== VIEW 2: 协议基准对比 ==================== -->
+    <section id="view-results" class="view" hidden>
+      <div class="kpi-strip" id="benchmarkKpis" aria-label="当前实验概览"></div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>跨数据集与协议准确率总览</h2>
+            <p class="panel-desc">同一数据集内固定相同测试集与参考集（校验协议 SHA-256 一致），同时呈现指定配对命中率与 FIRE 已确认同眼命中率下界。</p>
+          </div>
+          <div class="head-controls">
+            <div class="segmented compact" id="metricModeSeg" role="radiogroup" aria-label="准确率统计口径">
+              <button type="button" role="radio" data-value="with_reject" aria-checked="true" class="is-on">带阈值拒识准确率</button>
+              <button type="button" role="radio" data-value="top1" aria-checked="false">无拒识 Top-1 准确率</button>
+            </div>
+            <div class="legend">
+              <span><i class="swatch primary"></i>指定配对 / 同人同眼准确率</span>
+              <span><i class="swatch secondary"></i>FIRE 已确认同眼准确率下界</span>
+            </div>
+          </div>
+        </div>
+        <div id="accuracyChart" class="chart muted">加载中</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>正式实验协议汇总表</h2>
+            <p class="panel-desc">同时报告课程要求的无拒识 Top-1 检索准确率与代理集阈值过滤后的带拒识认证准确率，拒绝与无有效候选均保留在查询分母中。</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="metricsTable">
+            <thead>
+              <tr>
+                <th>数据集</th>
+                <th>评测协议</th>
+                <th>方法</th>
+                <th class="num">Top-1 正确</th>
+                <th class="num">Top-1 准确率</th>
+                <th class="num">带拒识正确</th>
+                <th class="num">带拒识准确率</th>
+                <th class="num">同眼命中 (Top-1 / 带拒识)</th>
+                <th class="num">拒绝</th>
+                <th class="num">无候选</th>
+                <th class="num">中位耗时</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>FIRE S / P / A 分组对比</h2>
+              <p class="panel-desc">S 组：高重叠；P 组：小重叠；A 组：眼底病变。分组数量与准确率均读取当前实验报告。</p>
+            </div>
+          </div>
+          <div id="categoryBody" class="muted">加载中</div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>FIRE 控制点几何配准误差分析（附加验证）</h2>
+              <p class="panel-desc">将处理坐标系单应性矩阵还原至 2912×2912 原始像素坐标系计算真值点残差（排除官方标注异常的 P37，不参与身份检索）。</p>
+            </div>
+          </div>
+          <div id="registrationBody" class="table-wrap">加载中</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 3: 阈值标定与算法改进 ==================== -->
+    <section id="view-calibration" class="view" hidden>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>代理开发集（Vistel 33×125）阈值标定原则</h2>
+              <p class="panel-desc">为防止在 40 张正式测试图上过拟合参数，仅从参考库中拥有 ≥2 张参考图的 33 只眼中各取最小编号参考图构建代理查询。</p>
+            </div>
+          </div>
+          <div id="calibrationBody" class="table-wrap">加载中</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>针对性算法改进：SIFT 双向互近邻一致性检验</h2>
+              <p class="panel-desc">针对单向比值匹配在重复细小血管分支上易产生偶然 RANSAC 内点的问题，要求查询→参考与参考→查询双向通过比值检验。</p>
+            </div>
+          </div>
+          <div id="improvementBody" class="improvement-box"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>参数网格搜索完整记录（Vistel 33/125 代理协议，4,125 对配对）</h2>
+            <p class="panel-desc">第一阶段搜索 SIFT 比值阈值 ratio ∈ {0.70, 0.75, 0.80} × RANSAC 残差 ∈ {2, 3, 5} px；第二阶段在胜出配置上搜索最低内点数 min_inliers ∈ {6, 8, 12} 并验证双向匹配。</p>
+          </div>
+        </div>
+        <div class="table-wrap" id="searchGridWrap"></div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 4: 错误分析与数据审计 ==================== -->
+    <section id="view-errors" class="view" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>异常类别概览</h2>
+            <p class="panel-desc">按当前报告汇总异常类别次数，跨运行的同一查询会重复计数。点击类别筛选下方已收录的代表性样本。</p>
+          </div>
+        </div>
+        <div class="findings-grid" id="findingsGrid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>错误与边界案例交互诊断室</h2>
+            <p class="panel-desc">检视各算法导出的 RANSAC 内点连线图与 Top-5 候选图，支持按错误成因筛选，并可一键载入光学识别台实时复现。</p>
+          </div>
+          <div class="head-controls">
+            <select id="errorRunFilter" aria-label="按实验运行筛选"></select>
+            <select id="errorCatFilter" aria-label="按错误类别筛选">
+              <option value="ALL">全部异常与边界类别</option>
+              <option value="false_accept_mismatch">异眼误接受 (大视野平移)</option>
+              <option value="cross_group_unconfirmed">FIRE 跨关系组未确认 (P06/P33 近重复)</option>
+              <option value="threshold_marginal_rejection">阈值边际误拒识 (病变低内点)</option>
+              <option value="impostor_rejected">异眼候选被阈值成功拦截</option>
+              <option value="same_eye_alternate_reference">FIRE 命中同眼其他高重叠参考图</option>
+              <option value="exact_self_copy_hit">FIRE 原始划分命中自身完全相同副本</option>
+              <option value="no_valid_candidate">无有效几何候选拦截</option>
+            </select>
+          </div>
+        </div>
+        <p class="muted small" id="errorCaseCount" role="status"></p>
+        <div class="error-inspector" id="errorInspector">
+          <div class="error-list" id="errorList"></div>
+          <div class="error-detail" id="errorDetail"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>数据集契约、重复源图审计与模型完整性核查</h2>
+            <p class="panel-desc">对原始只读 ZIP 包执行 SHA-256 字节与解码像素双重哈希审计，自动过滤 macOS AppleDouble 隐藏文件并验证协议不变量。</p>
+          </div>
+        </div>
+        <div id="auditBody" class="audit-grid">加载中</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer"><span>Retinal Auth Console</span><span>Vistel / FIRE · 本地身份检索实验</span></footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

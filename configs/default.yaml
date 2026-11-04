@@ -1,0 +1,59 @@
+paths:
+  data_dir: dataset
+  artifacts_dir: artifacts
+  models_dir: models
+
+preprocessing:
+  size: 1024
+  brightness_threshold: 10
+  clahe_clip_limit: 2.0
+  clahe_grid_size: 8
+  boundary_erode_px: 8
+
+sift:
+  nfeatures: 1500
+  contrast_threshold: 0.02
+  edge_threshold: 10
+  sigma: 1.6
+  ratio: 0.75
+  ransac_px: 3.0
+  max_iters: 2000
+  confidence: 0.995
+  min_matches: 8
+  min_inliers: 8
+  bidirectional: false
+  threshold: null
+
+hog:
+  image_size: 512
+  orientations: 9
+  pixels_per_cell: [16, 16]
+  cells_per_block: [2, 2]
+  block_norm: L2-Hys
+  threshold: null
+
+calibration:
+  target_far: 0.01
+  sift_ratios: [0.70, 0.75, 0.80]
+  sift_ransac_px: [2.0, 3.0, 5.0]
+  sift_min_inliers: [6, 8, 12]
+  hog_cells: [16, 32]
+  bidirectional_ratio: 0.75
+
+superretina:
+  enabled: false
+  weights: models/SuperRetina.pth
+  source_dir: models/SuperRetina
+  input_size: 768
+  detection_threshold: 0.01
+  nms_radius: 10
+  border_margin: 4
+  max_keypoints: 1500
+  ratio: 0.90
+  ransac_px: 3.0
+  max_iters: 2000
+  confidence: 0.995
+  min_matches: 8
+  min_inliers: 8
+  threshold: null
+
