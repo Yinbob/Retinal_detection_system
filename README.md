@@ -10,19 +10,66 @@ SIFT 局部匹配、HOG 全局匹配、阈值标定、正式评测和错误案�
 - 需要足够的磁盘空间保存原始压缩包、解压文件、特征缓存和实验结果；完整标定和评测可能需要较长时间。
 - 安装依赖需要网络连接。精确依赖版本见 `requirements.lock.txt`。
 
-## 安装
+## Windows 一键启动
+
+1. 安装 Python 3.11 或更高版本，安装时勾选 **Add python.exe to PATH**。
+2. 下载并解压本仓库（或使用 `git clone`），按下文放好两个数据压缩包。
+3. 双击项目根目录的 `start.bat`。
+4. 等终端提示地址后，在浏览器打开 http://127.0.0.1:8765 。保持终端窗口打开，按 `Ctrl+C` 停止服务。
+
+也可以在项目目录的 PowerShell 中启动：
+
+```powershell
+.\start.bat
+# 端口被占用时
+.\start.bat --port 8766
+```
+
+## macOS 一键启动
+
+1. 安装 Python 3.11 或更高版本，确认终端中的 `python3 --version` 满足要求。
+2. 下载并解压本仓库（或使用 `git clone`），按下文放好两个数据压缩包。
+3. 双击项目根目录的 `start.command`。如果下载的文件没有执行权限，在项目目录运行以下命令：
 
 ```bash
-git clone https://github.com/Yinbob/Retinal_detection_system.git
-cd Retinal_detection_system
+chmod +x start.command
+./start.command
+# 端口被占用时
+./start.command --port 8766
+```
+
+等终端提示地址后，在浏览器打开 http://127.0.0.1:8765 。保持终端窗口打开，按 `Ctrl+C` 停止服务。
+
+两个入口共用 `start.py`：首次启动自动创建 `.venv`、安装依赖，再执行数据准备、参数标定、评测和报告生成，最后启动网页服务。首次安装需要联网，完整实验可能耗时较长，请等待终端进度；之后启动会复用已有环境和结果。数据缺失时会提示具体文件名并退出。
+
+更换数据、配置或算法代码后，请重新生成实验结果：Windows 执行 `.\start.bat --rebuild`，macOS 执行 `./start.command --rebuild`。重建会更新现有实验产物。如果虚拟环境来自其他电脑或操作系统，请先删除 `.venv` 再启动。
+
+## 手动安装（可选）
+
+在项目根目录创建并激活虚拟环境：
+
+Windows PowerShell：
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+macOS 终端：
+
+```bash
 python3 -m venv .venv
-source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+source .venv/bin/activate
+```
+
+激活后安装依赖：
+
+```bash
 python -m pip install -r requirements.lock.txt
 python -m pip install -e . --no-deps
 ```
 
-以下命令均在项目根目录执行，并假定已激活虚拟环境。
+以下手动运行命令均在项目根目录执行，并假定已激活虚拟环境。一键启动已自动执行完整流程，无需重复运行。
 
 ## 数据集放置位置
 
